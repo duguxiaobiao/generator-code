@@ -2,6 +2,7 @@ package com.lonely.bean;
 
 import com.lonely.enums.Modifiers;
 import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author ztkj-hzb
@@ -31,5 +32,25 @@ public class ModelFieldDesc {
      */
     private String fieldName;
 
+    /**
+     * 泛型类型
+     */
+    private String genericityType;
 
+
+    /**
+     * 获取泛型的类型的简称
+     *
+     * @return
+     */
+    public String getGenericitySimpleTypeName() {
+        if (StringUtils.isBlank(genericityType)) {
+            return null;
+        }
+        try {
+            return Class.forName(this.genericityType).getSimpleName();
+        } catch (ClassNotFoundException e) {
+            return this.genericityType;
+        }
+    }
 }

@@ -1,6 +1,9 @@
 package com.lonely.bean;
 
+import com.lonely.generator.DefaultModelHandler;
+import com.lonely.util.DefaultModelBuildUtil;
 import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
@@ -31,4 +34,35 @@ public class ParamTypeDesc {
      * 是否存在泛型
      */
     private boolean existsT;
+
+    /**
+     * 泛型的类型
+     */
+    private String genericityType;
+
+    /**
+     * 获取全类名对应的class对象
+     *
+     * @return
+     */
+    public Class getType() {
+        if (StringUtils.isBlank(commonTypeName)) {
+            return null;
+        }
+        try {
+            return Class.forName(this.commonTypeName);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * 子参数构建的名称
+     *
+     * @return
+     */
+    public String getChildTypeName() {
+        return DefaultModelBuildUtil.generatorClassName();
+    }
 }

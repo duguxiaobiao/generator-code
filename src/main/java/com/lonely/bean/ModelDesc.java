@@ -61,13 +61,16 @@ public class ModelDesc {
         modelFieldDescs.add(modelFieldDesc);
     }
 
+    public List<ModelDesc> getInnerClasses() {
+        return innerClasses;
+    }
 
     /**
      * 添加内部类
      *
      * @param modelDesc
      */
-    public void addModelFieldDesc(ModelDesc modelDesc) {
+    public void addInnerModelDesc(ModelDesc modelDesc) {
         if (innerClasses == null) {
             innerClasses = new ArrayList<>();
         }

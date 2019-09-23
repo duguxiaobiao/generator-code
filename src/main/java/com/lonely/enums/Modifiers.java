@@ -7,13 +7,13 @@ package com.lonely.enums;
  */
 public enum Modifiers {
 
-    NONE(" "),
-    PUBLIC("public "),
-    PUBLIC_ABSTRACT("public abstract "),
-    PUBLIC_STATIC("public static "),
-    PROTECTED("protected "),
-    PRIVATE("private "),
-    PRIVATE_STATIC("private static ");
+    NONE(""),
+    PUBLIC("public"),
+    PUBLIC_ABSTRACT("public abstract"),
+    PUBLIC_STATIC("public static"),
+    PROTECTED("protected"),
+    PRIVATE("private"),
+    PRIVATE_STATIC("private static");
 
 
     public String modifier;

@@ -93,6 +93,7 @@ public class ClassUtil {
 
     /**
      * 将对象toString显示
+     *
      * @param o
      * @return
      */
@@ -155,5 +156,18 @@ public class ClassUtil {
         }
     }
 
+    /**
+     * 判断是否是基础数据类型的包装类型
+     *
+     * @param clz
+     * @return
+     */
+    public static boolean isWrapClass(Class clz) {
+        try {
+            return ((Class) clz.getField("TYPE").get(null)).isPrimitive();
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
 }
