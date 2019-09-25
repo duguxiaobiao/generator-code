@@ -21,4 +21,63 @@ public class StringUtil {
         return new String(ch);
     }
 
+
+    /**
+     * 判断指定字符串 是否满足 list集合的格式  比如 clazz.student[L0].stuname
+     *
+     * @param replaceStr
+     * @return
+     */
+    public static boolean regularMatchingListOrArrayFormat(String replaceStr) {
+        return regularMatchingListFormat(replaceStr) || regularMatchingArrayFormat(replaceStr);
+    }
+
+    /**
+     * 判断指定字符串 是否满足 list集合的格式  比如 clazz.student[L0].stuname
+     *
+     * @param replaceStr
+     * @return
+     */
+    public static boolean regularMatchingListFormat(String replaceStr) {
+        String regex = "[\\S\\s]*\\[L\\d?][\\S\\s]*";
+        return replaceStr.matches(regex);
+    }
+
+    /**
+     * 判断指定字符串 是否满足 list集合的格式  比如 clazz.student[L0].stuname
+     *
+     * @param replaceStr
+     * @return
+     */
+    public static boolean regularMatchingArrayFormat(String replaceStr) {
+        String regex = "[\\S\\s]*\\[A\\d?][\\S\\s]*";
+        return replaceStr.matches(regex);
+    }
+
+    /**
+     * 将集合待处理的前部分获取  例如 clazz.student[?0].stuname  -->  clazz.student
+     *
+     * @param fullStr
+     * @param replaceStr
+     * @return
+     */
+    public static String subStringListFormat(String fullStr, String replaceStr) {
+        int indexOf = fullStr.indexOf(replaceStr);
+        return fullStr.substring(0, indexOf);
+    }
+
+    /**
+     * 去除左右 [ ]
+     * @param handlerStr
+     * @return
+     */
+    public static String removeLeftAndRightMiddleBrackets(String handlerStr) {
+        if (handlerStr.charAt(0) == '[') {
+            handlerStr = handlerStr.substring(1);
+        }
+        if (handlerStr.charAt(handlerStr.length() - 1) == ']') {
+            handlerStr = handlerStr.substring(0, handlerStr.length() - 1);
+        }
+        return handlerStr;
+    }
 }

@@ -25,3 +25,8 @@
 hs_err_pid*
 
 *.iml
+
+.idea
+
+.idea/uiDesigner.xml
+.idea/vcs.xml

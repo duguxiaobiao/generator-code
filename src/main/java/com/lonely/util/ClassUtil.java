@@ -5,7 +5,10 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author ztkj-hzb
@@ -169,5 +172,32 @@ public class ClassUtil {
             return false;
         }
     }
+
+
+    /**
+     * 判断指定类是否是List的子类或者父类
+     *
+     * @param clz
+     * @return
+     */
+    public static boolean isListTypeClass(Class clz) {
+        try {
+            return clz.isAssignableFrom(List.class) || clz.newInstance() instanceof List;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+
+    /**
+     * 判断指定类是否是数组
+     *
+     * @param clz
+     * @return
+     */
+    public static boolean isArrayTypeClass(Class clz) {
+        return clz.isArray();
+    }
+
 
 }

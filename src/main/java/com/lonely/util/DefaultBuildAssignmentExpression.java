@@ -1,6 +1,5 @@
 package com.lonely.util;
 
-import com.lonely.bean.ModelDesc;
 import com.lonely.bean.ParamTypeDesc;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -22,6 +21,14 @@ public class DefaultBuildAssignmentExpression {
     private DefaultBuildAssignmentExpression() {
     }
 
+
+    /**
+     * 根据参数集合是实际的结果 构建符合BeanWrapper赋值表达式的map
+     *
+     * @param paramTypeDescs
+     * @param resultMap
+     * @return
+     */
     public static Map<String, Object> buildAssignmentExpression(List<ParamTypeDesc> paramTypeDescs, Map<String, Object> resultMap) {
 
         Map<String, Object> returnMap = new HashMap<>();

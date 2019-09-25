@@ -1,13 +1,16 @@
-package com.lonely.generator;
+package com.lonely.test;
 
 import com.lonely.bean.ModelDesc;
 import com.lonely.bean.ParamTypeDesc;
+import com.lonely.generator.DefaultModelHandler;
 import com.lonely.util.ClassUtil;
 import com.lonely.util.DefaultBuildAssignmentExpression;
 import com.lonely.util.DefaultModelBuildUtil;
 import org.springframework.beans.BeanWrapper;
+import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.PropertyAccessorFactory;
 
+import java.beans.PropertyDescriptor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,9 +19,9 @@ import java.util.Map;
 /**
  * @author ztkj-hzb
  * @Date 2019/9/19 15:24
- * @Description
+ * @Description 测试构建实体bean代码, 和赋值测试
  */
-public class Test {
+public class TestEntityBeanGenerator {
 
 
     public static void main(String[] args) throws Exception {
@@ -98,6 +101,17 @@ public class Test {
         beanWrapper.setAutoGrowNestedPaths(true);
 
         beanWrapper.setPropertyValues(returnMap);
+
+        //6.取值
+        System.out.println(beanWrapper.getPropertyValue("name"));
+        System.out.println(beanWrapper.getPropertyValue("school.schoolName"));
+
+        BeanWrapper beanWrapper1 = PropertyAccessorFactory.forBeanPropertyAccess(newInstance);
+        System.out.println(beanWrapper1.getPropertyValue("school.schoolName"));
+
+        BeanWrapperImpl beanWrapper3 = new BeanWrapperImpl(newInstance);
+        PropertyDescriptor[] alldescriptors = beanWrapper3.getPropertyDescriptors();
+
 
         //6.查看赋值情况
         System.out.println(newInstance);
