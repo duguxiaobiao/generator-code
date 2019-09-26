@@ -10,6 +10,6 @@ public class DefaultGeneratorConstant {
     /**
      * 默认包名
      */
-    public static final String DEFAULT_PACKAGE_NAME = "com.lonely.code";
+    public static final String DEFAULT_PACKAGE_NAME = "com/lonely/code";
 
 }

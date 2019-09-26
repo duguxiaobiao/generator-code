@@ -24,4 +24,8 @@ public class ParamBean {
      */
     private Class clazz;
 
+    /**
+     * 是否是数组
+     */
+    private boolean isArray;
 }

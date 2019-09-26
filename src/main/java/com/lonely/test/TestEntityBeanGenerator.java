@@ -77,8 +77,15 @@ public class TestEntityBeanGenerator {
         list3.add(list3_2_map);
         resultMap.put("familysStuGenes", list3);
 
+        //添加一个基础数据类型的数组
+        List<String> list4 = new ArrayList<>();
+        list4.add("篮球");
+        list4.add("足球");
+        list4.add("羽毛球");
+        resultMap.put("hobbys",list4);
+
         Map<String, Object> returnMap = DefaultBuildAssignmentExpression.buildAssignmentExpression(paramTypeDescs, resultMap);
-        System.out.println(returnMap);
+        //System.out.println(returnMap);
 
 
         //1.构建Model
@@ -86,11 +93,11 @@ public class TestEntityBeanGenerator {
 
         //2.构建代码
         String generator = DefaultModelHandler.generator(modelDesc);
-        System.out.println(generator);
+        //System.out.println(generator);
 
         //3.编译
         Class<?> compile = ClassUtil.compile(modelDesc.getMainClassName(), generator);
-        System.out.println(compile.getTypeName());
+        //System.out.println(compile.getTypeName());
 
         //4.组装参数
         //上面已组装
@@ -108,10 +115,6 @@ public class TestEntityBeanGenerator {
 
         BeanWrapper beanWrapper1 = PropertyAccessorFactory.forBeanPropertyAccess(newInstance);
         System.out.println(beanWrapper1.getPropertyValue("school.schoolName"));
-
-        BeanWrapperImpl beanWrapper3 = new BeanWrapperImpl(newInstance);
-        PropertyDescriptor[] alldescriptors = beanWrapper3.getPropertyDescriptors();
-
 
         //6.查看赋值情况
         System.out.println(newInstance);
@@ -335,6 +338,14 @@ public class TestEntityBeanGenerator {
         paramTypeDesc10.setChildParams(childParams5);
         paramTypeDesc10.setExistsT(true);
 
+        //来一个基础数据类型的数组
+        ParamTypeDesc paramTypeDesc11 = new ParamTypeDesc();
+        paramTypeDesc11.setParamName("hobbys");
+        paramTypeDesc11.setCommonTypeName("java.lang.String");
+        paramTypeDesc11.setExistsT(false);
+        paramTypeDesc11.setArray(true);
+
+
 
         paramTypeDescs.add(paramTypeDesc1);
         paramTypeDescs.add(paramTypeDesc2);
@@ -346,6 +357,7 @@ public class TestEntityBeanGenerator {
         paramTypeDescs.add(paramTypeDesc8);
         paramTypeDescs.add(paramTypeDesc9);
         paramTypeDescs.add(paramTypeDesc10);
+        paramTypeDescs.add(paramTypeDesc11);
 
         return paramTypeDescs;
     }

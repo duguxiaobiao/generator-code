@@ -20,6 +20,8 @@ public class School {
 
     private List<Teacher> teachers;
 
+    private String[] strArr;
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -49,6 +51,17 @@ public class School {
         private String teacherName;
 
         private List<Student> students;
+
+        private String[] habbos;
+
+        private Student[] studentArr;
+
+        public Teacher(String teacherName, List<Student> students) {
+            this.teacherName = teacherName;
+            this.students = students;
+        }
+
+
     }
 
 }

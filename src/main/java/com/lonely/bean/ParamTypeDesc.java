@@ -1,6 +1,5 @@
 package com.lonely.bean;
 
-import com.lonely.generator.DefaultModelHandler;
 import com.lonely.util.DefaultModelBuildUtil;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
@@ -39,6 +38,11 @@ public class ParamTypeDesc {
      * 泛型的类型
      */
     private String genericityType;
+
+    /**
+     * 是否是数组
+     */
+    private boolean isArray;
 
     /**
      * 获取全类名对应的class对象

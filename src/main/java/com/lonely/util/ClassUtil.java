@@ -1,14 +1,14 @@
 package com.lonely.util;
 
+import org.apache.commons.lang.StringUtils;
+
 import javax.tools.*;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author ztkj-hzb
@@ -200,4 +200,22 @@ public class ClassUtil {
     }
 
 
+    /**
+     * 判断指定类名是否是数组
+     *
+     * @param className
+     * @return
+     */
+    public static boolean isArrayTypeClass(String className) {
+        if (StringUtils.isEmpty(className)) {
+            return false;
+        }
+
+        try {
+            Class<?> forName = Class.forName(className);
+            return isArrayTypeClass(forName);
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
 }

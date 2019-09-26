@@ -9,8 +9,10 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.PropertyAccessorFactory;
 
 import java.text.MessageFormat;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author ztkj-hzb
@@ -44,14 +46,13 @@ public class DefaultAssignmentSubstitutionUtil {
         for (AssignmentBean assignmentBean : assignmentBeans) {
 
             //判断当前表达式是否包含了集合
-            long count = assignmentBean.getLefetParamBeans().stream().filter(paramBean -> ClassUtil.isListTypeClass(paramBean.getClazz()))
+            long count = assignmentBean.getLefetParamBeans().stream().filter(paramBean -> ClassUtil.isListTypeClass(paramBean.getClazz()) || paramBean.isArray())
                     .count();
             if (count == 0) {
                 //正常属性或对象属性处理
                 //1.获取对应的右侧的属性值
                 Object result = getExpressionResults(rightInstance, assignmentBean.getRightParamBeans());
                 //2.根据左侧属性关系构建表达式
-                //String express = buildCascadeExpression(assignmentBean.getLefetParamBeans());
                 String express = getExpression(assignmentBean.getLefetParamBeans());
                 //3.设置属性
                 beanWrapper.setPropertyValue(express, result);
@@ -60,7 +61,7 @@ public class DefaultAssignmentSubstitutionUtil {
                 //1.获取对应的右侧的属性值
                 Object result = getExpressionResults(rightInstance, assignmentBean.getRightParamBeans());
                 //判断右侧属性中是否存在集合
-                long rCount = assignmentBean.getRightParamBeans().stream().filter(paramBean -> ClassUtil.isListTypeClass(paramBean.getClazz()))
+                long rCount = assignmentBean.getRightParamBeans().stream().filter(paramBean -> ClassUtil.isListTypeClass(paramBean.getClazz()) || paramBean.isArray())
                         .count();
                 List list = new ArrayList();
                 if (rCount == 0) {
@@ -72,10 +73,17 @@ public class DefaultAssignmentSubstitutionUtil {
                 }
                 //获取初级表达式
                 String express = getExpression(assignmentBean.getLefetParamBeans());
-                //替换表达式赋值
+
+                //判断先处理集合还是数组
                 String listReplaceStr = MessageFormat.format("[L{0}]", 0);
+                String arrayReplaceStr = MessageFormat.format("[A{0}]", 0);
+
+                //判断是处理的是 list还是数组，这里不支持嵌套,所以只会存在一种
+                String finalHandlerReplaceStr = express.contains(listReplaceStr) ? listReplaceStr : arrayReplaceStr;
+
+                //替换表达式赋值
                 for (int i = 0; i < list.size(); i++) {
-                    String newExpress = express.replace(StringUtil.removeLeftAndRightMiddleBrackets(listReplaceStr), i + "");
+                    String newExpress = express.replace(StringUtil.removeLeftAndRightMiddleBrackets(finalHandlerReplaceStr), i + "");
                     beanWrapper.setPropertyValue(newExpress, list.get(i));
                 }
             } else {
@@ -111,9 +119,8 @@ public class DefaultAssignmentSubstitutionUtil {
         }
         Set<String> expressSet = new HashSet<>();
         expressSet.add(expression);
+        //将处理表达式根据对象值来构建成赋值表达式
         Set<String> replaceExpression = replaceExpression(expressSet, 0, objInstance);
-
-        //System.out.println(replaceExpression);
 
         BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(objInstance);
 
@@ -124,16 +131,14 @@ public class DefaultAssignmentSubstitutionUtil {
 
         if (replaceExpression.size() == 1) {
             //只有一条，不要将结果累计，直接返回
-            String resultExpressStr = replaceExpression.stream().findFirst().orElseThrow(()->new RuntimeException("没有表达式，无法处理"));
+            String resultExpressStr = replaceExpression.stream().findFirst().orElseThrow(() -> new RuntimeException("没有表达式，无法处理"));
             Object propertyValue = beanWrapper.getPropertyValue(resultExpressStr);
-            //System.out.println(propertyValue);
             return propertyValue;
         } else {
             //多条，需要将结果累计
             List<Object> result = new ArrayList<>();
             for (String resultExpressStr : replaceExpression) {
                 Object propertyValue = beanWrapper.getPropertyValue(resultExpressStr);
-                //System.out.println(propertyValue);
                 result.add(propertyValue);
             }
 
@@ -142,55 +147,6 @@ public class DefaultAssignmentSubstitutionUtil {
         }
 
     }
-
-
-    private static String buildCascadeExpression(List<ParamBean> paramBeans) {
-        if (CollectionUtils.isEmpty(paramBeans)) {
-            return StringUtils.EMPTY;
-        }
-        return paramBeans.stream().map(ParamBean::getParamName).collect(Collectors.joining("."));
-    }
-
-
-    /*private static void replaceExpression(String expression, Object objInstance, Set<String> expressSet, int index) {
-        //int index = 0;
-        BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(objInstance);
-
-        while (StringUtil.regularMatchingListOrArrayFormat(expression)) {
-            //判断是集合还是数组
-            String listReplaceStr = MessageFormat.format("[L{0}]", index);
-            String arrayReplaceStr = MessageFormat.format("[A{0}]", index);
-
-            //判断当前最近处理的是 list还是数组
-            if (expression.indexOf(listReplaceStr) > expression.indexOf(arrayReplaceStr)) {
-                //先处理list
-                String subExpress = StringUtil.subStringListFormat(expression, listReplaceStr);
-                List list = (List) beanWrapper.getPropertyValue(subExpress);
-                if (CollectionUtils.isEmpty(list)) {
-                    return;
-                }
-                Set<String> expreSet = new HashSet<>();
-                for (int i = 0; i < list.size(); i++) {
-                    //int currIndex = index+1;
-                    String newExpress = expression.replace(StringUtil.removeLeftAndRightMiddleBrackets(listReplaceStr), i + "");
-                    //递归处理
-                    //replaceExpression(newExpress, objInstance, expressSet, ++index);
-                    expreSet.add(newExpress);
-                }
-
-                for (String express : expreSet) {
-                    replaceExpression(express, objInstance, expressSet, ++index);
-                }
-
-                //return;
-            } else {
-                //处理数组
-
-            }
-        }
-        expressSet.add(expression);
-
-    }*/
 
 
     /**
@@ -231,7 +187,15 @@ public class DefaultAssignmentSubstitutionUtil {
                     }
                 } else {
                     //处理数组
-
+                    String subExpress = StringUtil.subStringListFormat(express, arrayReplaceStr);
+                    Object[] arrObj = (Object[]) beanWrapper.getPropertyValue(subExpress);
+                    if (arrObj == null || arrObj.length == 0) {
+                        return new HashSet<>();
+                    }
+                    for (int i = 0; i < arrObj.length; i++) {
+                        String newExpress = express.replace(StringUtil.removeLeftAndRightMiddleBrackets(arrayReplaceStr), i + "");
+                        resultSet.add(newExpress);
+                    }
                 }
             }
 
@@ -246,7 +210,7 @@ public class DefaultAssignmentSubstitutionUtil {
 
 
     /**
-     * 获取表达式结果
+     * 构建初级表达式
      *
      * @param paramBeans
      * @return
@@ -267,9 +231,10 @@ public class DefaultAssignmentSubstitutionUtil {
                 //集合类型，先获取目前为止的集合的值
                 prefix = StringUtils.isEmpty(prefix) ? MessageFormat.format("{0}[L{1}]", paramBean.getParamName(), index++) :
                         MessageFormat.format("{0}.{1}[L{2}]", prefix, paramBean.getParamName(), index++);
-            } else if (ClassUtil.isArrayTypeClass(paramBean.getClazz())) {
+            } else if (paramBean.isArray()) {
                 //数组类型
-                prefix = StringUtils.isEmpty(prefix) ? paramBean.getParamName() : MessageFormat.format("{0}.{1}[A{2}]", prefix, paramBean.getParamName(), index++);
+                prefix = StringUtils.isEmpty(prefix) ? MessageFormat.format("{0}[A{1}]", paramBean.getParamName(), index++) :
+                        MessageFormat.format("{0}.{1}[A{2}]", prefix, paramBean.getParamName(), index++);
             } else {
                 //非集合类型
                 prefix = StringUtils.isEmpty(prefix) ? paramBean.getParamName() : MessageFormat.format("{0}.{1}", prefix, paramBean.getParamName());
@@ -330,9 +295,9 @@ public class DefaultAssignmentSubstitutionUtil {
 
         //4.集合嵌套
         //ParamBean clazzParam = new ParamBean("clazz", School.Clazz.class);
-        ParamBean teacherParam = new ParamBean("teachers", List.class);
-        ParamBean studentParam = new ParamBean("students", List.class);
-        ParamBean studentNameParam = new ParamBean("age", Integer.class);
+        ParamBean teacherParam = new ParamBean("teachers", List.class, false);
+        ParamBean studentParam = new ParamBean("students", List.class, false);
+        ParamBean studentNameParam = new ParamBean("age", Integer.class, false);
         paramBeans.add(teacherParam);
         paramBeans.add(studentParam);
         paramBeans.add(studentNameParam);

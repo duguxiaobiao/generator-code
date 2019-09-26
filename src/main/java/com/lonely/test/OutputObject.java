@@ -29,6 +29,12 @@ public class OutputObject {
      */
     private List<OutputObjectObj> outputObjectObjs;
 
+    /**
+     * 基础数据类型的数组
+     */
+    private String[] strArr;
+
+
 
     @Data
     @AllArgsConstructor

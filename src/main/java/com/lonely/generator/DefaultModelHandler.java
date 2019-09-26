@@ -2,6 +2,7 @@ package com.lonely.generator;
 
 import com.lonely.bean.ModelDesc;
 import com.lonely.bean.ModelFieldDesc;
+import com.lonely.test.School;
 import com.lonely.util.StringUtil;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -245,14 +246,34 @@ public class DefaultModelHandler {
                 //判断是否存在泛型
                 if (StringUtils.isEmpty(modelFieldDesc.getGenericityType())) {
                     //不存在泛型
-                    fieldBuilder.append("\t").append(MessageFormat.format("{0} {1} {2};", modelFieldDesc.getModifier().modifier, modelFieldDesc.getType(), modelFieldDesc.getFieldName()))
-                            .append("\r\n");
+
+                    //判断是否数组,因为java中数组无法指定类型，即没有全类名，所以这里约定 数组的Type为 Array就是数组
+                    if (modelFieldDesc.isArray()) {
+                        //构建成 private int[] ints;
+                        fieldBuilder.append("\t").append(MessageFormat.format("{0} {1}[] {2};", modelFieldDesc.getModifier().modifier, modelFieldDesc.getType(), modelFieldDesc.getFieldName()))
+                                .append("\r\n");
+                    } else {
+                        fieldBuilder.append("\t").append(MessageFormat.format("{0} {1} {2};", modelFieldDesc.getModifier().modifier, modelFieldDesc.getType(), modelFieldDesc.getFieldName()))
+                                .append("\r\n");
+                    }
 
                 } else {
                     //存在泛型
-                    fieldBuilder.append("\t").append(MessageFormat.format("{0} {1}<{2}> {3};", modelFieldDesc.getModifier().modifier, modelFieldDesc.getType(),
-                            modelFieldDesc.getGenericitySimpleTypeName(), modelFieldDesc.getFieldName()))
-                            .append("\r\n");
+
+                    //判断是否数组,因为java中数组无法指定类型，即没有全类名，所以这里约定 数组的Type为 Array就是数组
+                    if (modelFieldDesc.isArray()) {
+                        //构建成 private List<School.Student>[] lists;
+                        fieldBuilder.append("\t").append(MessageFormat.format("{0} {1}<{2}>[] {3};", modelFieldDesc.getModifier().modifier, modelFieldDesc.getType(),
+                                modelFieldDesc.getGenericitySimpleTypeName(), modelFieldDesc.getFieldName()))
+                                .append("\r\n");
+
+                    } else {
+                        fieldBuilder.append("\t").append(MessageFormat.format("{0} {1}<{2}> {3};", modelFieldDesc.getModifier().modifier, modelFieldDesc.getType(),
+                                modelFieldDesc.getGenericitySimpleTypeName(), modelFieldDesc.getFieldName()))
+                                .append("\r\n");
+                    }
+
+
                 }
 
             }
@@ -297,7 +318,19 @@ public class DefaultModelHandler {
         String type = modelFieldDesc.getType();
         if (StringUtils.isNotEmpty(modelFieldDesc.getGenericityType())) {
             //有泛型
-            type = MessageFormat.format("{0}<{1}>", type, modelFieldDesc.getGenericitySimpleTypeName());
+            //是否是数组类型
+            if (modelFieldDesc.isArray()) {
+                type = MessageFormat.format("{0}<{1}>[]", type, modelFieldDesc.getGenericitySimpleTypeName());
+            } else {
+                type = MessageFormat.format("{0}<{1}>", type, modelFieldDesc.getGenericitySimpleTypeName());
+            }
+        } else {
+            //没有泛型，判断是否是数组类型
+            if (modelFieldDesc.isArray()) {
+                type = MessageFormat.format("{0}[]", type);
+            } else {
+                type = MessageFormat.format("{0}", type);
+            }
         }
 
         getterMethodBuilder.append("\t").append(MessageFormat.format("public {0} get{1}()", type, StringUtil.upperCase(modelFieldDesc.getFieldName())))
@@ -323,8 +356,21 @@ public class DefaultModelHandler {
         StringBuilder setterMethodBuilder = new StringBuilder();
 
         String type = modelFieldDesc.getType();
+        //判断是否有泛型
         if (StringUtils.isNotBlank(modelFieldDesc.getGenericitySimpleTypeName())) {
-            type = MessageFormat.format("{0}<{1}>", type, modelFieldDesc.getGenericitySimpleTypeName());
+            //判断是否是数组类型
+            if (modelFieldDesc.isArray()) {
+                type = MessageFormat.format("{0}<{1}>[]", type, modelFieldDesc.getGenericitySimpleTypeName());
+            } else {
+                type = MessageFormat.format("{0}<{1}>", type, modelFieldDesc.getGenericitySimpleTypeName());
+            }
+        } else {
+            //判断是否是数组类型
+            if (modelFieldDesc.isArray()) {
+                type = MessageFormat.format("{0}[]", type);
+            } else {
+                type = MessageFormat.format("{0}", type);
+            }
         }
 
         setterMethodBuilder.append("\t").append(MessageFormat.format("public void set{0}({1} {2})", StringUtil.upperCase(modelFieldDesc.getFieldName()),

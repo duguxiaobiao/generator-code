@@ -22,6 +22,9 @@ public class DefaultBuildAssignmentExpression {
     }
 
 
+    private static final String TYPE_STRING = "String";
+
+
     /**
      * 根据参数集合是实际的结果 构建符合BeanWrapper赋值表达式的map
      *
@@ -107,8 +110,12 @@ public class DefaultBuildAssignmentExpression {
                 String key = MessageFormat.format("{0}.{1}", keyPrefix, childParam.getParamName());
                 buildMap.put(key, map.get(childParam.getParamName()));
             } else if ("HashMap".equalsIgnoreCase(type.getSimpleName())) {
-                //hashmap，转换成内部类,然后添加内部类
-                buildMap.putAll(objectAssignmentHanlder(keyPrefix, childParam, (Map<String, Object>) map.get(childParam.getParamName())));
+                //判断是否是数组
+                if (childParam.isArray()) {
+                    buildMap.putAll(arrayAssignmentHanlder(keyPrefix, childParam, (Object[]) map.get(childParam.getParamName())));
+                } else {
+                    buildMap.putAll(objectAssignmentHanlder(keyPrefix, childParam, (Map<String, Object>) map.get(childParam.getParamName())));
+                }
             } else if ("List".equalsIgnoreCase(type.getSimpleName()) || "Set".equalsIgnoreCase(type.getSimpleName())) {
                 //判断是否存在子节点集合，如果不存在，则说明是List或List<String>等基础类型,否则List<Student>这样的类型
                 buildMap.putAll(listAssignmentHanlder(null, childParam, (List<Object>) map.get(childParam.getParamName())));
@@ -119,7 +126,7 @@ public class DefaultBuildAssignmentExpression {
 
 
     /**
-     * 递归处理 object类型(即Map)类型的 转换成对应的拼接格式  例如： user.clazz.clazzName, user.clazz.clazzId赋值关系
+     * 递归处理 list类型的 转换成对应的拼接格式  例如： user.clazz.clazzName, user.clazz.clazzId赋值关系
      *
      * @param keyPrefix
      * @param paramTypeDesc
@@ -130,15 +137,9 @@ public class DefaultBuildAssignmentExpression {
 
         Map<String, Object> buildMap = new HashMap<>();
 
-        //判断是否存在子节点
-        /*if (CollectionUtils.isEmpty(paramTypeDesc.getChildParams())) {
-            return buildMap;
-        }*/
-
         if (CollectionUtils.isEmpty(list)) {
             return buildMap;
         }
-
 
         //根据当前的参数名，构建前缀部分例如 users[0].name
         if (StringUtils.isNotBlank(keyPrefix)) {
@@ -154,7 +155,9 @@ public class DefaultBuildAssignmentExpression {
             //判断是否具有泛型
             if (paramTypeDesc.isExistsT()) {
                 //存在泛型
-                //判断泛型是否是基础数据类型
+                buildMap.putAll(listOrArraySingleDataHandler(paramTypeDesc, keyPrefix, i, currData));
+
+                /*//判断泛型是否是基础数据类型
                 if (CollectionUtils.isEmpty(paramTypeDesc.getChildParams())) {
                     //基础数据类型
                     String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
@@ -170,13 +173,15 @@ public class DefaultBuildAssignmentExpression {
                             String key = MessageFormat.format("{0}[{1}].{2}", keyPrefix, i, childParam.getParamName());
                             buildMap.put(key, currMap.get(childParam.getParamName()));
                         } else if ("HashMap".equalsIgnoreCase(type.getSimpleName())) {
-                            //hashmap，转换成内部类,然后添加内部类
-                            //buildMap.putAll(objectAssignmentHanlder(keyPrefix, childParam, (Map<String, Object>) map.get(childParam.getParamName())));
+                            String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
+                            buildMap.putAll(objectAssignmentHanlder(key, childParam, (Map<String, Object>) currMap.get(childParam.getParamName())));
                         } else if ("List".equalsIgnoreCase(type.getSimpleName()) || "Set".equalsIgnoreCase(type.getSimpleName())) {
                             //判断是否存在子节点集合，如果不存在，则说明是List或List<String>等基础类型,否则List<Student>这样的类型
+                            String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
+                            buildMap.putAll(listAssignmentHanlder(key, childParam, (List<Object>) currMap.get(childParam.getParamName())));
                         }
                     }
-                }
+                }*/
 
             } else {
                 //不存在泛型，直接赋值
@@ -187,6 +192,122 @@ public class DefaultBuildAssignmentExpression {
         }
 
 
+        return buildMap;
+    }
+
+
+    /**
+     * 递归处理 数组类型的 转换成对应的拼接格式  例如： user[0].clazz.clazzName, user[1].clazz.clazzId赋值关系
+     *
+     * @param keyPrefix
+     * @param paramTypeDesc
+     * @param objArr
+     * @return
+     */
+    private static Map<String, Object> arrayAssignmentHanlder(String keyPrefix, ParamTypeDesc paramTypeDesc, Object[] objArr) {
+
+        Map<String, Object> buildMap = new HashMap<>();
+
+        //判断是否存在子节点
+        if (objArr == null || objArr.length == 0) {
+            return buildMap;
+        }
+
+
+        //根据当前的参数名，构建前缀部分例如 users[0].name
+        if (StringUtils.isNotBlank(keyPrefix)) {
+            keyPrefix = MessageFormat.format("{0}.{1}", keyPrefix, paramTypeDesc.getParamName());
+        } else {
+            keyPrefix = paramTypeDesc.getParamName();
+        }
+
+
+        //先循环具体数据的条数
+        for (int i = 0; i < objArr.length; i++) {
+            Object currData = objArr[i];
+            buildMap.putAll(listOrArraySingleDataHandler(paramTypeDesc, keyPrefix, i, currData));
+
+            /*//判断是否具有泛型
+            //todo 这里不支持泛型操作，即不支持 List<Student>[] 这种格式
+            //判断泛型是否是基础数据类型
+            if (CollectionUtils.isEmpty(paramTypeDesc.getChildParams())) {
+                //基础数据类型
+                String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
+                buildMap.put(key, currData);
+            } else {
+                //对象类型
+                Map<String, Object> currMap = (Map<String, Object>) currData;
+                for (ParamTypeDesc childParam : paramTypeDesc.getChildParams()) {
+                    //判断类型
+                    Class type = childParam.getType();
+                    if (type.isPrimitive() || ClassUtil.isWrapClass(type) || "String".equalsIgnoreCase(type.getSimpleName())) {
+                        //基础数据类型,直接构建属性
+                        String key = MessageFormat.format("{0}[{1}].{2}", keyPrefix, i, childParam.getParamName());
+                        buildMap.put(key, currMap.get(childParam.getParamName()));
+                    } else if ("HashMap".equalsIgnoreCase(type.getSimpleName())) {
+                        String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
+                        buildMap.putAll(objectAssignmentHanlder(key, childParam, (Map<String, Object>) currMap.get(childParam.getParamName())));
+                    } else if ("List".equalsIgnoreCase(type.getSimpleName()) || "Set".equalsIgnoreCase(type.getSimpleName())) {
+                        //判断是否存在子节点集合，如果不存在，则说明是List或List<String>等基础类型,否则List<Student>这样的类型
+                        String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
+                        buildMap.putAll(listAssignmentHanlder(key, childParam, (List<Object>) currMap.get(childParam.getParamName())));
+                    }
+                }
+            }*/
+
+
+        }
+
+
+        return buildMap;
+    }
+
+
+    /**
+     * 集合或数组 单条数据处理，公共代码提取，因为集合和数组都是依靠索引来构建，构建的格式 都是如下： user.student[0].name
+     *
+     * @param paramTypeDesc 当前的参数类型配置
+     * @param keyPrefix     当前前缀
+     * @param i             集合或者数组的第几条数据的处理
+     * @param currData      集合或者数据的第几条数据
+     * @return
+     */
+    private static Map<String, Object> listOrArraySingleDataHandler(ParamTypeDesc paramTypeDesc, String keyPrefix, int i, Object currData) {
+        Map<String, Object> buildMap = new HashMap<>();
+
+        //判断是对象类型还是基础数据类型
+        if (CollectionUtils.isEmpty(paramTypeDesc.getChildParams())) {
+            //基础数据类型
+            String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
+            buildMap.put(key, currData);
+        } else {
+            //对象类型
+            Map<String, Object> currMap = (Map<String, Object>) currData;
+            for (ParamTypeDesc childParam : paramTypeDesc.getChildParams()) {
+                //判断类型
+                Class type = childParam.getType();
+                if (type.isPrimitive() || ClassUtil.isWrapClass(type) || "String".equalsIgnoreCase(type.getSimpleName())) {
+                    //基础数据类型,直接构建属性
+                    String key = MessageFormat.format("{0}[{1}].{2}", keyPrefix, i, childParam.getParamName());
+                    buildMap.put(key, currMap.get(childParam.getParamName()));
+                } else if ("HashMap".equalsIgnoreCase(type.getSimpleName())) {
+                    String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
+                    //buildMap.putAll(objectAssignmentHanlder(key, childParam, (Map<String, Object>) currMap.get(childParam.getParamName())));
+
+                    //判断是否是数组
+                    if (childParam.isArray()) {
+                        buildMap.putAll(arrayAssignmentHanlder(key, childParam, (Object[]) currMap.get(childParam.getParamName())));
+                    } else {
+                        buildMap.putAll(objectAssignmentHanlder(key, childParam, (Map<String, Object>) currMap.get(childParam.getParamName())));
+                    }
+
+                } else if ("List".equalsIgnoreCase(type.getSimpleName()) || "Set".equalsIgnoreCase(type.getSimpleName())) {
+                    //判断是否存在子节点集合，如果不存在，则说明是List或List<String>等基础类型,否则List<Student>这样的类型
+                    String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
+                    buildMap.putAll(listAssignmentHanlder(key, childParam, (List<Object>) currMap.get(childParam.getParamName())));
+                }
+            }
+        }
         return buildMap;
     }
 

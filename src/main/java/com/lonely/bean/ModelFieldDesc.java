@@ -37,6 +37,11 @@ public class ModelFieldDesc {
      */
     private String genericityType;
 
+    /**
+     * 是否是数组类型
+     */
+    private boolean isArray;
+
 
     /**
      * 获取泛型的类型的简称

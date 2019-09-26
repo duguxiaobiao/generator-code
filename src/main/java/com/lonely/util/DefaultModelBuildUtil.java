@@ -74,6 +74,7 @@ public class DefaultModelBuildUtil {
 
         //泛型类型
         modelFieldDesc.setGenericityType(paramTypeDesc.getGenericityType());
+        modelFieldDesc.setArray(paramTypeDesc.isArray());
 
         return modelFieldDesc;
     }
@@ -121,7 +122,7 @@ public class DefaultModelBuildUtil {
             previous.addModelFieldDesc(buildDefaultModelFieldDesc(headerParamType));
             //previous.addModelFieldDesc(buildDefaultModelFieldDesc(headerParamType.getCommonTypeName(), headerParamType.getType().getSimpleName(),innerClassName));
         } else {
-            previous.addModelFieldDesc(buildDefaultModelFieldDesc(innerClassName, headerParamType.getParamName()));
+            previous.addModelFieldDesc(buildDefaultModelFieldDesc(innerClassName, headerParamType.getParamName(), headerParamType.isArray()));
         }
 
         //添加内部类,注意这里是放在在外层的实体bean中，因为所有的内部类同级别
@@ -136,11 +137,12 @@ public class DefaultModelBuildUtil {
      * @param paramName
      * @return
      */
-    private static ModelFieldDesc buildDefaultModelFieldDesc(String typeName, String paramName) {
+    private static ModelFieldDesc buildDefaultModelFieldDesc(String typeName, String paramName, boolean isArray) {
         ModelFieldDesc modelFieldDesc = new ModelFieldDesc();
         modelFieldDesc.setModifier(Modifiers.PRIVATE);
         modelFieldDesc.setType(typeName);
         modelFieldDesc.setFieldName(paramName);
+        modelFieldDesc.setArray(isArray);
         return modelFieldDesc;
     }
 
