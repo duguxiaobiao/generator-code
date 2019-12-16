@@ -1,6 +1,7 @@
 package com.lonely.util;
 
 import com.lonely.bean.ParamTypeDesc;
+import com.lonely.constants.DataTypeConstant;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -20,9 +21,6 @@ public class DefaultBuildAssignmentExpression {
 
     private DefaultBuildAssignmentExpression() {
     }
-
-
-    private static final String TYPE_STRING = "String";
 
 
     /**
@@ -56,15 +54,15 @@ public class DefaultBuildAssignmentExpression {
             ParamTypeDesc paramTypeDesc = paramTypeDescMap.get(paramName);
             //判断类型
             Class type = paramTypeDesc.getType();
-            if (type.isPrimitive() || ClassUtil.isWrapClass(type) || "String".equalsIgnoreCase(type.getSimpleName())) {
+            if (type.isPrimitive() || ClassUtil.isWrapClass(type) || DataTypeConstant.TYPE_STRING.equalsIgnoreCase(type.getSimpleName())) {
                 //基础数据类型,直接构建属性
                 returnMap.put(paramName, entry.getValue());
-            } else if ("HashMap".equalsIgnoreCase(type.getSimpleName())) {
+            } else if (DataTypeConstant.TYPE_OBJECT.equalsIgnoreCase(type.getSimpleName())) {
                 //hashmap，转换成内部类,然后添加内部类
                 //根据key获取对应的值
                 Map<String, Object> map = (Map<String, Object>) resultMap.get(paramName);
                 returnMap.putAll(objectAssignmentHanlder(null, paramTypeDesc, map));
-            } else if ("List".equalsIgnoreCase(type.getSimpleName())) {
+            } else if (DataTypeConstant.TYPE_LIST.equalsIgnoreCase(type.getSimpleName())) {
                 //这里不支持Set，因为Set不是按照索引处理
                 //判断是否存在子节点集合，如果不存在，则说明是List或List<String>等基础类型,否则List<Student>这样的类型
                 //判断是否存在泛型
@@ -105,20 +103,20 @@ public class DefaultBuildAssignmentExpression {
         for (ParamTypeDesc childParam : paramTypeDesc.getChildParams()) {
             //判断类型
             Class type = childParam.getType();
-            if (type.isPrimitive() || ClassUtil.isWrapClass(type) || "String".equalsIgnoreCase(type.getSimpleName())) {
+            if (type.isPrimitive() || ClassUtil.isWrapClass(type) || DataTypeConstant.TYPE_STRING.equalsIgnoreCase(type.getSimpleName())) {
                 //基础数据类型,直接构建属性
                 String key = MessageFormat.format("{0}.{1}", keyPrefix, childParam.getParamName());
                 buildMap.put(key, map.get(childParam.getParamName()));
-            } else if ("HashMap".equalsIgnoreCase(type.getSimpleName())) {
+            } else if (DataTypeConstant.TYPE_OBJECT.equalsIgnoreCase(type.getSimpleName())) {
                 //判断是否是数组
                 if (childParam.isArray()) {
                     buildMap.putAll(arrayAssignmentHanlder(keyPrefix, childParam, (Object[]) map.get(childParam.getParamName())));
                 } else {
                     buildMap.putAll(objectAssignmentHanlder(keyPrefix, childParam, (Map<String, Object>) map.get(childParam.getParamName())));
                 }
-            } else if ("List".equalsIgnoreCase(type.getSimpleName()) || "Set".equalsIgnoreCase(type.getSimpleName())) {
+            } else if (DataTypeConstant.TYPE_LIST.equalsIgnoreCase(type.getSimpleName()) || DataTypeConstant.TYPE_SET.equalsIgnoreCase(type.getSimpleName())) {
                 //判断是否存在子节点集合，如果不存在，则说明是List或List<String>等基础类型,否则List<Student>这样的类型
-                buildMap.putAll(listAssignmentHanlder(null, childParam, (List<Object>) map.get(childParam.getParamName())));
+                buildMap.putAll(listAssignmentHanlder(keyPrefix, childParam, (List<Object>) map.get(childParam.getParamName())));
             }
         }
         return buildMap;
@@ -156,33 +154,6 @@ public class DefaultBuildAssignmentExpression {
             if (paramTypeDesc.isExistsT()) {
                 //存在泛型
                 buildMap.putAll(listOrArraySingleDataHandler(paramTypeDesc, keyPrefix, i, currData));
-
-                /*//判断泛型是否是基础数据类型
-                if (CollectionUtils.isEmpty(paramTypeDesc.getChildParams())) {
-                    //基础数据类型
-                    String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
-                    buildMap.put(key, currData);
-                } else {
-                    //对象类型
-                    Map<String, Object> currMap = (Map<String, Object>) currData;
-                    for (ParamTypeDesc childParam : paramTypeDesc.getChildParams()) {
-                        //判断类型
-                        Class type = childParam.getType();
-                        if (type.isPrimitive() || ClassUtil.isWrapClass(type) || "String".equalsIgnoreCase(type.getSimpleName())) {
-                            //基础数据类型,直接构建属性
-                            String key = MessageFormat.format("{0}[{1}].{2}", keyPrefix, i, childParam.getParamName());
-                            buildMap.put(key, currMap.get(childParam.getParamName()));
-                        } else if ("HashMap".equalsIgnoreCase(type.getSimpleName())) {
-                            String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
-                            buildMap.putAll(objectAssignmentHanlder(key, childParam, (Map<String, Object>) currMap.get(childParam.getParamName())));
-                        } else if ("List".equalsIgnoreCase(type.getSimpleName()) || "Set".equalsIgnoreCase(type.getSimpleName())) {
-                            //判断是否存在子节点集合，如果不存在，则说明是List或List<String>等基础类型,否则List<Student>这样的类型
-                            String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
-                            buildMap.putAll(listAssignmentHanlder(key, childParam, (List<Object>) currMap.get(childParam.getParamName())));
-                        }
-                    }
-                }*/
-
             } else {
                 //不存在泛型，直接赋值
                 String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
@@ -226,36 +197,6 @@ public class DefaultBuildAssignmentExpression {
         for (int i = 0; i < objArr.length; i++) {
             Object currData = objArr[i];
             buildMap.putAll(listOrArraySingleDataHandler(paramTypeDesc, keyPrefix, i, currData));
-
-            /*//判断是否具有泛型
-            //todo 这里不支持泛型操作，即不支持 List<Student>[] 这种格式
-            //判断泛型是否是基础数据类型
-            if (CollectionUtils.isEmpty(paramTypeDesc.getChildParams())) {
-                //基础数据类型
-                String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
-                buildMap.put(key, currData);
-            } else {
-                //对象类型
-                Map<String, Object> currMap = (Map<String, Object>) currData;
-                for (ParamTypeDesc childParam : paramTypeDesc.getChildParams()) {
-                    //判断类型
-                    Class type = childParam.getType();
-                    if (type.isPrimitive() || ClassUtil.isWrapClass(type) || "String".equalsIgnoreCase(type.getSimpleName())) {
-                        //基础数据类型,直接构建属性
-                        String key = MessageFormat.format("{0}[{1}].{2}", keyPrefix, i, childParam.getParamName());
-                        buildMap.put(key, currMap.get(childParam.getParamName()));
-                    } else if ("HashMap".equalsIgnoreCase(type.getSimpleName())) {
-                        String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
-                        buildMap.putAll(objectAssignmentHanlder(key, childParam, (Map<String, Object>) currMap.get(childParam.getParamName())));
-                    } else if ("List".equalsIgnoreCase(type.getSimpleName()) || "Set".equalsIgnoreCase(type.getSimpleName())) {
-                        //判断是否存在子节点集合，如果不存在，则说明是List或List<String>等基础类型,否则List<Student>这样的类型
-                        String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
-                        buildMap.putAll(listAssignmentHanlder(key, childParam, (List<Object>) currMap.get(childParam.getParamName())));
-                    }
-                }
-            }*/
-
-
         }
 
 
@@ -286,11 +227,11 @@ public class DefaultBuildAssignmentExpression {
             for (ParamTypeDesc childParam : paramTypeDesc.getChildParams()) {
                 //判断类型
                 Class type = childParam.getType();
-                if (type.isPrimitive() || ClassUtil.isWrapClass(type) || "String".equalsIgnoreCase(type.getSimpleName())) {
+                if (type.isPrimitive() || ClassUtil.isWrapClass(type) || DataTypeConstant.TYPE_STRING.equalsIgnoreCase(type.getSimpleName())) {
                     //基础数据类型,直接构建属性
                     String key = MessageFormat.format("{0}[{1}].{2}", keyPrefix, i, childParam.getParamName());
                     buildMap.put(key, currMap.get(childParam.getParamName()));
-                } else if ("HashMap".equalsIgnoreCase(type.getSimpleName())) {
+                } else if (DataTypeConstant.TYPE_OBJECT.equalsIgnoreCase(type.getSimpleName())) {
                     String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
                     //buildMap.putAll(objectAssignmentHanlder(key, childParam, (Map<String, Object>) currMap.get(childParam.getParamName())));
 
@@ -301,7 +242,7 @@ public class DefaultBuildAssignmentExpression {
                         buildMap.putAll(objectAssignmentHanlder(key, childParam, (Map<String, Object>) currMap.get(childParam.getParamName())));
                     }
 
-                } else if ("List".equalsIgnoreCase(type.getSimpleName()) || "Set".equalsIgnoreCase(type.getSimpleName())) {
+                } else if (DataTypeConstant.TYPE_LIST.equalsIgnoreCase(type.getSimpleName()) || DataTypeConstant.TYPE_SET.equalsIgnoreCase(type.getSimpleName())) {
                     //判断是否存在子节点集合，如果不存在，则说明是List或List<String>等基础类型,否则List<Student>这样的类型
                     String key = MessageFormat.format("{0}[{1}]", keyPrefix, i);
                     buildMap.putAll(listAssignmentHanlder(key, childParam, (List<Object>) currMap.get(childParam.getParamName())));

@@ -23,10 +23,10 @@ public class TestBuildAssignment {
 
     public static void main(String[] args) {
         //test1();
-        //test2();
+        test2();
         //test3();
         //test4();
-        test5();
+        //test5();
     }
 
     /**
@@ -168,7 +168,8 @@ public class TestBuildAssignment {
 
         ParamTypeDesc childParams1_2 = new ParamTypeDesc();
         childParams1_2.setParamName("students");
-        childParams1_2.setCommonTypeName("java.util.HashMap");
+        //childParams1_2.setCommonTypeName("java.util.HashMap");
+        childParams1_2.setCommonTypeName("java.lang.Object");
         childParams1_2.setExistsT(false);
 
         List<ParamTypeDesc> childParamsList1_1 = new ArrayList<>();

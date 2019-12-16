@@ -41,12 +41,16 @@ public class School {
         private String stuName;
 
         private Integer age;
+
+        public Student(String stuName) {
+            this.stuName = stuName;
+        }
     }
 
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class Teacher{
+    public static class Teacher {
 
         private String teacherName;
 
@@ -55,6 +59,8 @@ public class School {
         private String[] habbos;
 
         private Student[] studentArr;
+
+        private List<School> school;
 
         public Teacher(String teacherName, List<Student> students) {
             this.teacherName = teacherName;

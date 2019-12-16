@@ -182,7 +182,7 @@ public class ClassUtil {
      */
     public static boolean isListTypeClass(Class clz) {
         try {
-            return clz.isAssignableFrom(List.class) || clz.newInstance() instanceof List;
+            return List.class.isAssignableFrom(clz) || clz.newInstance() instanceof List;
         } catch (Exception e) {
             return false;
         }

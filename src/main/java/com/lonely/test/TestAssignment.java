@@ -5,6 +5,7 @@ import com.lonely.bean.ParamBean;
 import com.lonely.util.DefaultAssignmentSubstitutionUtil;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -108,7 +109,8 @@ public class TestAssignment {
         }});
         assignmentBean6.setRightParamBeans(new ArrayList<ParamBean>() {{
             this.add(new ParamBean("teachers", List.class, false));
-            this.add(new ParamBean("studentArr", School.Student.class, true));
+            //this.add(new ParamBean("studentArr", School.Student.class, true));
+            this.add(new ParamBean("studentArr", HashMap.class, true));
             this.add(new ParamBean("stuName", String.class, false));
         }});
 

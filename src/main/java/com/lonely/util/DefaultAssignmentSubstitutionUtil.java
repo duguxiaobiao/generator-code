@@ -2,6 +2,7 @@ package com.lonely.util;
 
 import com.lonely.bean.AssignmentBean;
 import com.lonely.bean.ParamBean;
+import com.lonely.constants.DataTypeConstant;
 import com.lonely.test.School;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -9,10 +10,7 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.PropertyAccessorFactory;
 
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author ztkj-hzb
@@ -110,14 +108,14 @@ public class DefaultAssignmentSubstitutionUtil {
         }
 
 
-        //1.根据参数构建初级表达式，比如构建的表达式是： user[L0].student[L1].name
+        //1.根据参数构建初级表达式，比如构建的表达式是： user[L0].student[L1].namej
         String expression = getExpression(paramBeans);
 
         //2.根据值替换表达式
         if (StringUtils.isEmpty(expression)) {
             return null;
         }
-        Set<String> expressSet = new HashSet<>();
+        Set<String> expressSet = new LinkedHashSet<>();
         expressSet.add(expression);
         //将处理表达式根据对象值来构建成赋值表达式
         Set<String> replaceExpression = replaceExpression(expressSet, 0, objInstance);
@@ -160,12 +158,12 @@ public class DefaultAssignmentSubstitutionUtil {
     private static Set<String> replaceExpression(Set<String> expressSet, int currIndex, Object objInstance) {
 
         if (CollectionUtils.isEmpty(expressSet)) {
-            return new HashSet<>();
+            return new LinkedHashSet<>();
         }
 
         BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(objInstance);
 
-        Set<String> resultSet = new HashSet<>();
+        Set<String> resultSet = new LinkedHashSet<>();
 
         for (String express : expressSet) {
             if (StringUtil.regularMatchingListOrArrayFormat(express)) {
@@ -179,7 +177,7 @@ public class DefaultAssignmentSubstitutionUtil {
                     String subExpress = StringUtil.subStringListFormat(express, listReplaceStr);
                     List list = (List) beanWrapper.getPropertyValue(subExpress);
                     if (CollectionUtils.isEmpty(list)) {
-                        return new HashSet<>();
+                        return new LinkedHashSet<>();
                     }
                     for (int i = 0; i < list.size(); i++) {
                         String newExpress = express.replace(StringUtil.removeLeftAndRightMiddleBrackets(listReplaceStr), i + "");
@@ -190,7 +188,7 @@ public class DefaultAssignmentSubstitutionUtil {
                     String subExpress = StringUtil.subStringListFormat(express, arrayReplaceStr);
                     Object[] arrObj = (Object[]) beanWrapper.getPropertyValue(subExpress);
                     if (arrObj == null || arrObj.length == 0) {
-                        return new HashSet<>();
+                        return new LinkedHashSet<>();
                     }
                     for (int i = 0; i < arrObj.length; i++) {
                         String newExpress = express.replace(StringUtil.removeLeftAndRightMiddleBrackets(arrayReplaceStr), i + "");
@@ -242,6 +240,215 @@ public class DefaultAssignmentSubstitutionUtil {
         }
 
         return prefix;
+    }
+
+
+    /**
+     * 从map中获取指定表达式结果 例如 map:{"userName":"aa"}  中取出 userName的值 返回,可支持嵌套
+     *
+     * @param fromMap
+     * @param paramBeans
+     * @return
+     */
+    public static Object getExpressionResultFromMap(Map fromMap, List<ParamBean> paramBeans) {
+
+        if (fromMap == null || fromMap.isEmpty()) {
+            return null;
+        }
+
+        if (CollectionUtils.isEmpty(paramBeans)) {
+            throw new RuntimeException("没有表达式，玩jb");
+        }
+
+        //判断表达式中是否存在集合
+        long listParamSize = paramBeans.stream().filter(paramBean -> ClassUtil.isListTypeClass(paramBean.getClazz())).count();
+        if (listParamSize > 0) {
+            //存在集合场景
+            return getResultFromListObjectForMapHandler(fromMap, paramBeans);
+        } else {
+            //simple对象场景
+            return getResultFromSimpleObjectForMapHandler(fromMap, paramBeans);
+        }
+    }
+
+
+    /**
+     * 针对list结果从map中获取数据处理过程
+     *
+     * @param fromMap
+     * @param paramBeans
+     * @return
+     */
+    @SuppressWarnings("all")
+    private static Object getResultFromListObjectForMapHandler(Map fromMap, List<ParamBean> paramBeans) {
+
+        List results = new ArrayList();
+
+        if (CollectionUtils.isEmpty(paramBeans)) {
+            return results;
+        }
+
+        //针对于list场景，从第一个配置开始
+        ParamBean paramBean = paramBeans.get(0);
+        if (!fromMap.containsKey(paramBean.getParamName())) {
+            return results;
+        }
+
+        Object result = fromMap.get(paramBean.getParamName());
+        //判断当前数据类型是否为集合
+        if (result == null) {
+            return results;
+        }
+
+        //根据提供的类型判断
+        //判断类型
+        Class type = paramBean.getClazz();
+        if (type.isPrimitive() || ClassUtil.isWrapClass(type) || "String".equalsIgnoreCase(type.getSimpleName())) {
+            //非最后一层是基础数据类型,直接异常
+            throw new RuntimeException("非最后一层结构，不能是基础类型");
+        } else if (DataTypeConstant.TYPE_OBJECT.equalsIgnoreCase(type.getSimpleName())) {
+            //对象类型处理
+            List<ParamBean> currParamBeans = new ArrayList<>(paramBeans.subList(1, paramBeans.size()));
+            Object expressionResults = getExpressionResults(result, currParamBeans);
+
+            //判断右侧属性中是否存在集合
+            long listCount = currParamBeans.stream().filter(currParam -> ClassUtil.isListTypeClass(currParam.getClazz()) || currParam.isArray())
+                    .count();
+            if (listCount > 0) {
+                results.addAll((List) expressionResults);
+            } else {
+                results.add(expressionResults);
+            }
+
+            //判断结果类型
+            /*if (expressionResults == null) {
+                return results;
+            }
+            if (expressionResults instanceof List) {
+
+            } else {
+                results.add(expressionResults);
+            }*/
+
+        } else if (DataTypeConstant.TYPE_LIST.equalsIgnoreCase(type.getSimpleName())) {
+            //list类型处理
+            List<ParamBean> currParamBeans = new ArrayList<>(paramBeans.subList(1, paramBeans.size()));
+            results.addAll(getResultFromListObjectForListHandler((List) result, currParamBeans));
+        } else if (DataTypeConstant.TYPE_MAP.equalsIgnoreCase(type.getSimpleName())) {
+            //map类型处理
+            List<ParamBean> currParamBeans = new ArrayList<>(paramBeans.subList(1, paramBeans.size()));
+            results.addAll((Collection) getResultFromListObjectForMapHandler((Map) result, currParamBeans));
+        } else {
+            throw new RuntimeException(MessageFormat.format("不支持其他类型", result.getClass().getName()));
+        }
+
+        return results;
+    }
+
+
+    /**
+     * 针对list结果从list中获取数据处理过程
+     *
+     * @param results
+     * @param paramBeans
+     * @return
+     */
+    private static List getResultFromListObjectForListHandler(List results, List<ParamBean> paramBeans) {
+
+        List currResults = new ArrayList();
+
+        if (CollectionUtils.isEmpty(results)) {
+            return currResults;
+        }
+
+        for (Object result : results) {
+
+            Class type = result.getClass();
+            if (type.isPrimitive() || ClassUtil.isWrapClass(type) || "String".equalsIgnoreCase(type.getSimpleName())) {
+                //非最后一层是基础数据类型,直接异常
+                throw new RuntimeException("非最后一层结构，不能是基础类型");
+            } else if ("HashMap".equalsIgnoreCase(type.getSimpleName())) {
+                //map处理
+                currResults.add(getExpressionResultFromMap((Map) result, paramBeans));
+            } else if ("List".equalsIgnoreCase(type.getSimpleName())) {
+                currResults.addAll(getResultFromListObjectForListHandler((List) result, paramBeans));
+            } else {
+                //object类型处理
+                Object expressionResults = getExpressionResults(result, paramBeans);
+                if (expressionResults == null) {
+                    break;
+                }
+
+                if (expressionResults instanceof List) {
+                    currResults.addAll((List) expressionResults);
+                } else {
+                    currResults.add(expressionResults);
+                }
+            }
+        }
+
+
+        return currResults;
+    }
+
+
+    /**
+     * 简单数据结构处理
+     *
+     * @param fromMap
+     * @param paramBeans
+     * @return
+     */
+    private static Object getResultFromSimpleObjectForMapHandler(Map fromMap, List<ParamBean> paramBeans) {
+
+        if (CollectionUtils.isEmpty(paramBeans)) {
+            return null;
+        }
+
+        Object result = null;
+        for (int i = 0; i < paramBeans.size(); i++) {
+
+            ParamBean paramBean = paramBeans.get(i);
+
+            if (!fromMap.containsKey(paramBean.getParamName())) {
+                return null;
+            }
+
+            result = fromMap.get(paramBean.getParamName());
+
+            //判断是否到最后一层了
+            if (i == paramBeans.size()) {
+                //最后一层，直接范湖最终的结果
+                return result;
+            } else {
+                //非最后一层，返回当前层的map数据
+                if (result == null) {
+                    return null;
+                }
+
+                if (result instanceof Map) {
+                    fromMap = (Map) result;
+                }
+
+            }
+
+
+        }
+
+        return result;
+
+    }
+
+
+    /**
+     * 给指定对象根据赋值配置 赋予需要的数据值
+     *
+     * @param object         待赋值的对象
+     * @param dataSource     数据来源，即需要将该数据放入到待赋值的对象中
+     * @param assignmentBean 赋值表达式配置
+     */
+    public static void setValue(Object object, Object dataSource, AssignmentBean assignmentBean) {
+
     }
 
 
